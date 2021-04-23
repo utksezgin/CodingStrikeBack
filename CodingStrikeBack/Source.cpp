@@ -12,8 +12,8 @@ using namespace std;
 
 int main()
 {
-
-    // game loop
+    bool bBoostUsed = false;
+    int minBoostDistance = 3000;
     while (1)
     {
         int x;
@@ -26,7 +26,6 @@ int main()
         int opponentX;
         int opponentY;
         cin >> opponentX >> opponentY; cin.ignore();
-
         // Write an action using cout. DON'T FORGET THE "<< endl"
         // To debug: cerr << "Debug messages..." << endl;
 
@@ -39,7 +38,7 @@ int main()
         {
             if (nextCheckpointDist < 50)
             {
-                thrust = 35;
+                thrust = 30;
             }
             else
             {
@@ -47,9 +46,20 @@ int main()
             }
         }
 
+
         // You have to output the target position
         // followed by the power (0 <= thrust <= 100)
         // i.e.: "x y thrust"
-        cout << nextCheckpointX << " " << nextCheckpointY << " " << thrust << endl;
+
+        cout << nextCheckpointX << " " << nextCheckpointY << " ";
+        if (!bBoostUsed && nextCheckpointAngle == 0 && nextCheckpointDist > minBoostDistance)
+        {
+            cout << "BOOST" << endl;
+            bBoostUsed = true;
+        }
+        else
+        {
+            cout << thrust << endl;
+        }
     }
 }
