@@ -25,22 +25,24 @@ struct Vector2
     {
     }
 
+    Vector2 Normalize()
+    {
+        int magnitude = std::sqrt(std::pow(X, 2) + std::pow(Y, 2));
+        X /= magnitude;
+        Y /= magnitude;
+        return *this;
+    }
 
     int Length() const
     {
         return std::pow(X, 2) + std::pow(Y, 2);
     }
 
-    /*Vector2 Normalize()
-    {
-        int magnitude = std::sqrt(std::pow(X, 2) + std::pow(Y, 2));
-        return Vector2(X / magnitude, Y / magnitude);
-    }*/
-
     Vector2 trunc(int max)
     {
         X = std::clamp(X, X, max);
         Y = std::clamp(Y, Y, max);
+        return *this;
     }
 
     Vector2 operator-(Vector2 other) const
@@ -53,9 +55,9 @@ struct Vector2
         return Vector2(other.X + X, other.Y + Y);
     }
 
-    Vector2 operator*(Vector2 other) const
+    Vector2 operator*(int mag) const
     {
-        return Vector2(other.X * X, other.Y * Y);
+        return Vector2(X * mag, Y * mag);
     }
 
     bool operator==(Vector2 other) const
@@ -183,9 +185,11 @@ int main()
             << nextCheckpointAngle << " -- thrust: " << thrust << " Velocity: " << velocityMag <<
             " X: " << velocity.X << " Y: " << velocity.Y << endl;
 
-        // You have to output the target position
-        // followed by the power (0 <= thrust <= 100)
-        // i.e.: "x y thrust"
+
+        Vector2 desiredVelocity = (nextCheckpoint - podPosition).Normalize() * maxSpeed;
+        Vector2 steering = desiredVelocity - velocity;
+
+
 
         bool bBoostUsable = false;
         Vector2 maxCheckpoint;
@@ -211,7 +215,7 @@ int main()
         }
         else
         {
-            cout << nextCheckpoint.X << " " << nextCheckpoint.Y << " ";
+            cout << (nextCheckpoint + steering).X << " " << (nextCheckpoint + steering).Y << " ";
         }
 
         if (!bBoostUsed && absCheckpointAngle < 5 && bBoostUsable)
