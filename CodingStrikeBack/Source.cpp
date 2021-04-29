@@ -83,11 +83,9 @@ struct CheckpointManager
         if (it == CheckpointPositions.end())
         {
             CheckpointPositions.push_back(checkpoint);
-            cerr << "TEST0" << " " << CheckpointPositions.size() << endl;
         }
         else
         {
-            cerr << "TEST" << endl;
             bCheckpointsFound = true;
         }
     }
@@ -117,6 +115,12 @@ struct CheckpointManager
         {
             return maxCheckpoint;
         }
+    }
+
+    Vector2 GetNextCheckpoint(Vector2 nextCheckPoint)
+    {
+        auto it = std::find(CheckpointPositions.begin(), CheckpointPositions.end(), nextCheckPoint);
+        return *(it + 1);
     }
 
 };
@@ -162,18 +166,18 @@ int main()
         {
             thrust = 0;
         }
-        else if (absCheckpointAngle < 10)
+        else //if (absCheckpointAngle < 10)
         {
             thrust = 100;
         }
-        else
+        /*else
         {
             thrust = lerp(0, 100, 1 - std::abs(nextCheckpointAngle) / 90.f);
-        }
+        }*/
 
 
         //Damp
-        thrust *= std::clamp(nextCheckpointDist / (CheckpointRadius * 2.3), 0.0, 1.0);
+        //thrust *= std::clamp(nextCheckpointDist / (CheckpointRadius * 2.5) , 0.0, 1.0);
 
         cerr << "cp dist: " << nextCheckpointDist << " -- cp angle: "
             << nextCheckpointAngle << " -- thrust: " << thrust << " Velocity: " << velocityMag <<
@@ -199,7 +203,17 @@ int main()
                 bBoostUsable = true;
             }
         }
-        cout << nextCheckpoint.X << " " << nextCheckpoint.Y << " ";
+
+        if (nextCheckpointDist < 1000 && CPManager.bCheckpointsFound)
+        {
+            Vector2 nextCP = CPManager.GetNextCheckpoint(nextCheckpoint);
+            cout << nextCP.X << " " << nextCP.Y << " ";
+        }
+        else
+        {
+            cout << nextCheckpoint.X << " " << nextCheckpoint.Y << " ";
+        }
+
         if (!bBoostUsed && absCheckpointAngle < 5 && bBoostUsable)
         {
             cout << "BOOST" << endl;
