@@ -6,7 +6,8 @@
 
 using namespace std;
 
-#define MAX_SPEED 650
+#define PI 3.14159265
+#define MAX_SPEED 500
 #define MAX_FORCE 100
 
 /**
@@ -40,9 +41,8 @@ struct Vector2
 
     Vector2 Normalize()
     {
-        int magnitude = std::sqrt(std::pow(X, 2) + std::pow(Y, 2));
-        X /= magnitude;
-        Y /= magnitude;
+        X /= Length();
+        Y /= Length();
         return *this;
     }
 
@@ -80,13 +80,6 @@ struct Vector2
 
 };
 
-int GetAngleBetweenVectors(Vector2 v1, Vector2 v2)
-{
-    int length1 = v1.Length();
-    int length2 = v2.Length();
-    return std::acos((v1.X * v2.X + v1.Y * v2.Y) / length1 * length2);
-}
-
 
 struct CheckpointManager
 {
@@ -98,12 +91,9 @@ struct CheckpointManager
         CheckpointPositions.push_back(checkpoint);
     }
 
-    Vector2 GetMaxDistCheckpoint()
+    int GetMaxDistCheckpoint()
     {
-        if (CheckpointPositions.size() <= 1)
-            return Vector2(0, 0);
-
-        Vector2 maxCheckpoint;
+        int maxCheckpointID;
         int maxDist = 0;
         for (int i = 0; i < CheckpointPositions.size() - 1; ++i)
         {
@@ -112,31 +102,31 @@ struct CheckpointManager
             if (tempLength > maxDist)
             {
                 maxDist = tempLength;
-                maxCheckpoint = CheckpointPositions[i + 1];
+                maxCheckpointID = i + 1;
             }
         }
         Vector2 temp = CheckpointPositions[CheckpointPositions.size() - 1] - CheckpointPositions[0];
         if (temp.LengthSqrd() > maxDist)
         {
-            return CheckpointPositions[0];
+            return 0;
         }
         else
         {
-            return maxCheckpoint;
+            return maxCheckpointID;
         }
     }
 
     Vector2 GetCheckpoint(int checkpointID)
     {
-        return CheckpointPositions[checkpointID - 1];
+        return CheckpointPositions[checkpointID];
     }
 
-    Vector2 GetNextCheckpoint(int nextCheckpointID)
+    Vector2 GetNextCheckpoint(int checkpointID)
     {
-        //++nextCheckpointID; //Not necessary as checkpoints start from 1 instead of 0
-        nextCheckpointID %= CheckpointPositions.size();
+        ++checkpointID;
+        checkpointID %= CheckpointPositions.size();
 
-        return CheckpointPositions[(nextCheckpointID)];
+        return CheckpointPositions[(checkpointID)];
     }
 
 };
@@ -150,6 +140,7 @@ struct Pod
     int Thrust = 0;
     int RotationAngle;
     int TargetCheckpointID;
+    int MaxDistCheckpointID;
     bool bBoostUsed = false;
 
     int GetThrust(int destinationAngle)
@@ -172,6 +163,24 @@ struct Pod
             RotationAngle >> TargetCheckpointID; cin.ignore();
     }
 
+    float GetAngleToTarget(Vector2 target)
+    {
+        float dist = (target - Position).Length();
+        float distX = (target.X - Position.X) / dist;
+        float distY = (target.Y - Position.Y) / dist;
+
+        // Simple trigonometry. We multiply by 180.0 / PI to convert radiants to degrees.
+        int angle = acos(distX) * 180.0 / PI;
+
+        // If the point I want is below me, I have to shift the angle for it to be correct
+        if (distY < 0)
+        {
+            angle = 360.0 - angle;
+        }
+
+        return angle;
+    }
+
     int GetDistanceToPosition(Vector2 targetPos) const
     {
         return (Position - targetPos).LengthSqrd();
@@ -179,8 +188,11 @@ struct Pod
 
     void output(Vector2 targetCheckpoint, Vector2 nextCheckpoint)
     {
-        int targetCheckpointAngle = GetAngleBetweenVectors(Position, targetCheckpoint); //fix
-        int targetCheckpointDist = (Position - targetCheckpoint).LengthSqrd();
+        Vector2 dir = targetCheckpoint - Position;
+        int targetCheckpointAngle = GetAngleToTarget(targetCheckpoint) - RotationAngle;
+        int targetCheckpointDist = (Position - targetCheckpoint).Length();
+
+        cerr << "Angle: " << targetCheckpointAngle << " Rotation: " << RotationAngle << endl;
 
         int absCheckpointAngle = std::abs(targetCheckpointAngle);
         if (absCheckpointAngle >= 90)
@@ -192,19 +204,23 @@ struct Pod
             Thrust = 100;
         }
 
-        Vector2 desiredVelocity = (nextCheckpoint - Position).Normalize() * MAX_SPEED;
-        Vector2 steering = desiredVelocity - Velocity;
-
+        cerr << "TargetCP: " << targetCheckpoint.X << " nextCP: " << nextCheckpoint.X << endl;
         if (targetCheckpointDist < 1000)
         {
-            cout << nextCheckpoint.X << " " << nextCheckpoint.Y << " ";
+            Vector2 desiredVelocity = (nextCheckpoint - Position).Normalize() * MAX_SPEED;
+            Vector2 steering = Vector2(0, 0); desiredVelocity - Velocity;
+
+            cout << (nextCheckpoint + steering).X << " " << (nextCheckpoint + steering).Y << " ";
         }
         else
         {
-            cout << (nextCheckpoint + steering).X << " " << (nextCheckpoint + steering).Y << " ";
+            Vector2 desiredVelocity = (targetCheckpoint - Position).Normalize() * MAX_SPEED;
+            Vector2 steering = desiredVelocity - Velocity;
+
+            cout << (targetCheckpoint + steering).X << " " << (targetCheckpoint + steering).Y << " ";
         }
 
-        if (!bBoostUsed && absCheckpointAngle < 5)
+        if (!bBoostUsed && absCheckpointAngle < 5 && MaxDistCheckpointID == TargetCheckpointID)
         {
             cout << "BOOST" << endl;
             bBoostUsed = true;
@@ -245,11 +261,14 @@ int main()
         CPManager.SaveCheckpoint(std::move(Vector2(checkpointX, checkpointY)));
     }
 
-    Vector2 maxCheckpoint;
+    int maxCheckpoint;
     maxCheckpoint = CPManager.GetMaxDistCheckpoint();
 
     Pod allyPod1;
     Pod allyPod2;
+
+    allyPod1.MaxDistCheckpointID = maxCheckpoint;
+    allyPod2.MaxDistCheckpointID = maxCheckpoint;
     Pod opponentPod1;
     Pod opponentPod2;
 
