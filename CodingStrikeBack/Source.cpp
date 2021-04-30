@@ -25,6 +25,11 @@ struct Vector2
     Vector2(const Vector2& other) : X(other.X), Y(other.Y)
     {
     }
+
+    Vector2(Vector2&& other) : X(other.X), Y(other.Y)
+    {
+    }
+
     Vector2(int x, int y) : X(x), Y(y)
     {
     }
@@ -169,10 +174,8 @@ struct Pod
         float distX = (target.X - Position.X) / dist;
         float distY = (target.Y - Position.Y) / dist;
 
-        // Simple trigonometry. We multiply by 180.0 / PI to convert radiants to degrees.
         int angle = acos(distX) * 180.0 / PI;
 
-        // If the point I want is below me, I have to shift the angle for it to be correct
         if (distY < 0)
         {
             angle = 360.0 - angle;
@@ -192,8 +195,6 @@ struct Pod
         int targetCheckpointAngle = GetAngleToTarget(targetCheckpoint) - RotationAngle;
         int targetCheckpointDist = (Position - targetCheckpoint).Length();
 
-        cerr << "Angle: " << targetCheckpointAngle << " Rotation: " << RotationAngle << endl;
-
         int absCheckpointAngle = std::abs(targetCheckpointAngle);
         if (absCheckpointAngle >= 90)
         {
@@ -204,7 +205,6 @@ struct Pod
             Thrust = 100;
         }
 
-        cerr << "TargetCP: " << targetCheckpoint.X << " nextCP: " << nextCheckpoint.X << endl;
         if (targetCheckpointDist < 1000)
         {
             Vector2 desiredVelocity = (nextCheckpoint - Position).Normalize() * MAX_SPEED;
@@ -292,10 +292,5 @@ int main()
         allyPod1.output(CPManager.GetCheckpoint(allyPod1.TargetCheckpointID), CPManager.GetNextCheckpoint(allyPod1.TargetCheckpointID));
         allyPod2.output(CPManager.GetCheckpoint(allyPod2.TargetCheckpointID), CPManager.GetNextCheckpoint(allyPod2.TargetCheckpointID));
 
-        //log
-        /*
-        cerr << "cp dist: " << nextCheckpointDist << " -- cp angle: "
-        << nextCheckpointAngle << " -- thrust: " << thrust << " Velocity: " << velocityMag << endl;
-        */
     }
 }
